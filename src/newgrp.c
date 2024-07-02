@@ -18,14 +18,15 @@
 #include <assert.h>
 
 #include "agetpass.h"
-#include "alloc.h"
+#include "alloc/x/xmalloc.h"
 #include "defines.h"
 #include "getdef.h"
 #include "prototypes.h"
 /*@-exitarg@*/
 #include "exitcodes.h"
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/snprintf.h"
+#include "string/strdup/xstrdup.h"
 
 
 /*

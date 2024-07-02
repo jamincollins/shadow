@@ -26,7 +26,6 @@
 #endif				/* ACCT_TOOLS_SETUID */
 #include <pwd.h>
 
-#include "alloc.h"
 #include "atoi/str2i.h"
 #include "defines.h"
 #include "memzero.h"
@@ -34,9 +33,10 @@
 #include "pwio.h"
 #include "shadowio.h"
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/snprintf.h"
+#include "string/strcpy/strtcpy.h"
+#include "string/strdup/xstrdup.h"
 #include "string/strftime.h"
-#include "string/strtcpy.h"
 #include "time/day_to_str.h"
 /*@-exitarg@*/
 #include "exitcodes.h"

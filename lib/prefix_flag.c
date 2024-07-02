@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "atoi/getnum.h"
 #include "defines.h"
-#include "alloc.h"
 #include "prototypes.h"
 /*@-exitarg@*/
 #include "exitcodes.h"
@@ -28,7 +28,7 @@
 #endif				/* ENABLE_SUBIDS */
 #include "getdef.h"
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/xasprintf.h"
 
 
 static char *passwd_db_file = NULL;
@@ -334,8 +334,7 @@ extern void prefix_endgrent(void)
 
 extern struct group *prefix_getgr_nam_gid(const char *grname)
 {
-	char          *end;
-	long long     gid;
+	gid_t         gid;
 	struct group  *g;
 
 	if (NULL == grname) {
@@ -345,15 +344,8 @@ extern struct group *prefix_getgr_nam_gid(const char *grname)
 	if (!group_db_file)
 		return getgr_nam_gid(grname);
 
-	errno = 0;
-	gid = strtoll(grname, &end, 10);
-	if (   ('\0' != *grname)
-	    && ('\0' == *end)
-	    && (0 == errno)
-	    && (gid == (gid_t)gid))
-	{
+	if (get_gid(grname, &gid) == 0)
 		return prefix_getgrgid(gid);
-	}
 
 	g = prefix_getgrnam(grname);
 	return g ? __gr_dup(g) : NULL;

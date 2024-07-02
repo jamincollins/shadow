@@ -9,12 +9,12 @@
 #include <ctype.h>
 #include <stdatomic.h>
 
-#include "alloc.h"
+#include "alloc/malloc.h"
 #include "prototypes.h"
 #include "../libsubid/subid.h"
 #include "shadowlog_internal.h"
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/snprintf.h"
 
 
 #define NSSWITCH "/etc/nsswitch.conf"
@@ -129,6 +129,11 @@ void nss_init(const char *nsswitch_path) {
 	subid_nss->find_subid_owners = dlsym(h, "shadow_subid_find_subid_owners");
 	if (!subid_nss->find_subid_owners) {
 		fprintf(shadow_logfd, "%s did not provide @find_subid_owners@\n", libname);
+		goto close_lib;
+	}
+	subid_nss->free = dlsym(h, "shadow_subid_free");
+	if (!subid_nss->free) {
+		fprintf(shadow_logfd, "%s did not provide @subid_free@\n", libname);
 		goto close_lib;
 	}
 	subid_nss->handle = h;

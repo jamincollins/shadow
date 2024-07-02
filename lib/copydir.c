@@ -18,7 +18,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#include "alloc.h"
+#include "alloc/malloc.h"
+#include "alloc/x/xmalloc.h"
 #include "attr.h"
 #include "prototypes.h"
 #include "defines.h"
@@ -36,7 +37,7 @@
 #include <attr/libattr.h>
 #endif				/* WITH_ATTR */
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/xasprintf.h"
 
 
 static /*@null@*/const char *src_orig;

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <subid.h>
 #include <string.h>
-#include "alloc.h"
+#include "alloc/malloc.h"
 
 enum subid_status shadow_subid_has_any_range(const char *owner, enum subid_type t, bool *result)
 {
@@ -137,4 +137,9 @@ enum subid_status shadow_subid_list_owner_ranges(const char *owner, enum subid_t
 	*in_ranges = ranges;
 
 	return SUBID_STATUS_SUCCESS;
+}
+
+void shadow_subid_free(void *ptr)
+{
+	free(ptr);
 }

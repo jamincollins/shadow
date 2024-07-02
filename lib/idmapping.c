@@ -13,10 +13,11 @@
 #include <stdio.h>
 #include <strings.h>
 
-#include "alloc.h"
+#include "alloc/calloc.h"
+#include "alloc/x/xmalloc.h"
 #include "atoi/str2i.h"
 #include "prototypes.h"
-#include "string/stpeprintf.h"
+#include "string/sprintf/stpeprintf.h"
 #include "idmapping.h"
 #if HAVE_SYS_CAPABILITY_H
 #include <sys/prctl.h>

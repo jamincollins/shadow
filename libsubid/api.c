@@ -12,10 +12,12 @@
 #include <string.h>
 #include <pwd.h>
 #include <stdbool.h>
+
 #include "subordinateio.h"
 #include "idmapping.h"
 #include "subid.h"
 #include "shadowlog.h"
+
 
 bool subid_init(const char *progname, FILE * logfd)
 {
@@ -40,6 +42,11 @@ bool subid_init(const char *progname, FILE * logfd)
 	}
 	log_set_logfd(shadow_logfd);
 	return true;
+}
+
+void subid_free(void *ptr)
+{
+	free_subid_pointer(ptr);
 }
 
 static

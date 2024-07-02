@@ -142,15 +142,10 @@ extern int find_new_sub_gids (gid_t *range_start, unsigned long *range_count);
 extern int find_new_sub_uids (uid_t *range_start, unsigned long *range_count);
 #endif				/* ENABLE_SUBIDS */
 
-
-/* get_gid.c */
-extern int get_gid (const char *gidstr, gid_t *gid);
-
 /* getgr_nam_gid.c */
 extern /*@only@*//*@null@*/struct group *getgr_nam_gid (/*@null@*/const char *grname);
 
 /* get_pid.c */
-extern int get_pid (const char *pidstr, pid_t *pid);
 extern int get_pidfd_from_fd(const char *pidfdstr);
 extern int open_pidfd(const char *pidstr);
 
@@ -161,9 +156,6 @@ extern int getrange (const char *range,
 
 /* gettime.c */
 extern time_t gettime (void);
-
-/* get_uid.c */
-extern int get_uid (const char *uidstr, uid_t *uid);
 
 /* fputsx.c */
 ATTR_ACCESS(write_only, 1, 2)
@@ -284,6 +276,19 @@ struct subid_nss_ops {
 	 */
 	enum subid_status (*find_subid_owners)(unsigned long id, enum subid_type id_type, uid_t **uids, int *count);
 
+	/*
+	 * nss_free: free a memory block allocated by a subid plugin.
+	 *
+	 * @ptr - a pointer to a memory block to deallocate
+	 *
+	 * Some routines of subid_nss_ops allocate memory which should be freed by
+	 * caller after use. In order to deallocate that memory block, one should
+	 * use this routine to release that memory. By default, this function
+	 * pointer is set to free(3) for backward compatibility. However, it is
+	 * strongly recommended to define this routine explicitly.
+	 */
+	void (*free)(void *ptr);
+
 	/* The dlsym handle to close */
 	void *handle;
 };
@@ -355,10 +360,6 @@ unsigned long csrand_interval (unsigned long min, unsigned long max);
 
 /* remove_tree.c */
 extern int remove_tree (const char *root, bool remove_root);
-
-/* rlogin.c */
-extern int do_rlogin(const char *remote_host, char *name, size_t namesize,
-                     char *term, size_t termsize);
 
 /* root_flag.c */
 extern void process_root_flag (const char* short_opt, int argc, char **argv);

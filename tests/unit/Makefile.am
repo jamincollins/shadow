@@ -6,13 +6,12 @@ TESTS = $(check_PROGRAMS)
 check_PROGRAMS = \
     test_adds \
     test_atoi_strtoi \
-    test_atoi_strtou_noneg \
     test_chkname \
-    test_sprintf \
+    test_snprintf \
     test_strncpy \
     test_strtcpy \
-    test_xasprintf \
-    test_zustr2stp
+    test_typetraits \
+    test_xasprintf
 
 if ENABLE_LOGIND
 check_PROGRAMS += \
@@ -48,19 +47,6 @@ test_atoi_strtoi_LDADD = \
     $(CMOCKA_LIBS) \
     $(NULL)
 
-test_atoi_strtou_noneg_SOURCES = \
-    ../../lib/atoi/strtou_noneg.c \
-    test_atoi_strtou_noneg.c \
-    $(NULL)
-test_atoi_strtou_noneg_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-test_atoi_strtou_noneg_LDFLAGS = \
-    $(NULL)
-test_atoi_strtou_noneg_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(NULL)
-
 test_chkname_SOURCES = \
     ../../lib/chkname.c \
     test_chkname.c \
@@ -91,16 +77,16 @@ test_logind_LDADD = \
     $(LIBSYSTEMD) \
     $(NULL)
 
-test_sprintf_SOURCES = \
-    ../../lib/string/sprintf.c \
-    test_sprintf.c \
+test_snprintf_SOURCES = \
+    ../../lib/string/sprintf/snprintf.c \
+    test_snprintf.c \
     $(NULL)
-test_sprintf_CFLAGS = \
+test_snprintf_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
-test_sprintf_LDFLAGS = \
+test_snprintf_LDFLAGS = \
     $(NULL)
-test_sprintf_LDADD = \
+test_snprintf_LDADD = \
     $(CMOCKA_LIBS) \
     $(NULL)
 
@@ -117,7 +103,7 @@ test_strncpy_LDADD = \
     $(NULL)
 
 test_strtcpy_SOURCES = \
-    ../../lib/string/strtcpy.c \
+    ../../lib/string/strcpy/strtcpy.c \
     test_strtcpy.c \
     $(NULL)
 test_strtcpy_CFLAGS = \
@@ -129,8 +115,20 @@ test_strtcpy_LDADD = \
     $(CMOCKA_LIBS) \
     $(NULL)
 
+test_typetraits_SOURCES = \
+    test_typetraits.c \
+    $(NULL)
+test_typetraits_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_typetraits_LDFLAGS = \
+    $(NULL)
+test_typetraits_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(NULL)
+
 test_xasprintf_SOURCES = \
-    ../../lib/string/sprintf.c \
+    ../../lib/string/sprintf/xasprintf.c \
     test_xasprintf.c \
     $(NULL)
 test_xasprintf_CFLAGS = \
@@ -141,18 +139,6 @@ test_xasprintf_LDFLAGS = \
     -Wl,-wrap,exit \
     $(NULL)
 test_xasprintf_LDADD = \
-    $(CMOCKA_LIBS) \
-    $(NULL)
-
-test_zustr2stp_SOURCES = \
-    test_zustr2stp.c \
-    $(NULL)
-test_zustr2stp_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NULL)
-test_zustr2stp_LDFLAGS = \
-    $(NULL)
-test_zustr2stp_LDADD = \
     $(CMOCKA_LIBS) \
     $(NULL)
 

@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 
-#include "alloc.h"
 #include "defines.h"
 #include "getdef.h"
 #include "nscd.h"
@@ -31,7 +30,8 @@
 /*@-exitarg@*/
 #include "exitcodes.h"
 #include "shadowlog.h"
-#include "string/strtcpy.h"
+#include "string/strcpy/strtcpy.h"
+#include "string/strdup/xstrdup.h"
 
 #ifndef SHELLS_FILE
 #define SHELLS_FILE "/etc/shells"
@@ -42,6 +42,7 @@
 #define SHELLS "shells"
 #define ETCDIR "/etc"
 #endif
+
 
 /*
  * Global variables

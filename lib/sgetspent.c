@@ -53,34 +53,21 @@ sgetspent(const char *string)
 		return NULL;	/* fail if too long */
 	}
 	strcpy (spwbuf, string);
-
-	cp = strrchr (spwbuf, '\n');
-	if (NULL != cp) {
-		*cp = '\0';
-	}
+	*strchrnul(spwbuf, '\n') = '\0';
 
 	/*
 	 * Tokenize the string into colon separated fields.  Allow up to
 	 * FIELDS different fields.
 	 */
 
-	for (cp = spwbuf, i = 0; ('\0' != *cp) && (i < FIELDS); i++) {
-		fields[i] = cp;
-		cp = strchrnul(cp, ':');
-
-		if ('\0' != *cp) {
-			*cp = '\0';
-			cp++;
-		}
-	}
+	for (cp = spwbuf, i = 0; cp != NULL && i < FIELDS; i++)
+		fields[i] = strsep(&cp, ":");
 
 	if (i == (FIELDS - 1))
 		fields[i++] = "";
 
-	if ( ((NULL != cp) && ('\0' != *cp)) ||
-	     ((i != FIELDS) && (i != OFIELDS)) ) {
+	if (cp != NULL || (i != FIELDS && i != OFIELDS))
 		return NULL;
-	}
 
 	/*
 	 * Start populating the structure.  The fields are all in

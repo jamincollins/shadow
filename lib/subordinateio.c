@@ -18,9 +18,11 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "alloc.h"
+#include "alloc/malloc.h"
+#include "alloc/realloc.h"
+#include "alloc/reallocf.h"
 #include "atoi/str2i.h"
-#include "string/sprintf.h"
+#include "string/sprintf/snprintf.h"
 
 
 #define ID_SIZE 31
@@ -274,40 +276,8 @@ static const struct subordinate_range *find_range(struct commonio_db *db,
 	return NULL;
 }
 
-/*
- * have_range: check whether @owner is authorized to use the range
- *             (@start .. @start+@count-1).
- * @db: database to check
- * @owner: owning uid being queried
- * @start: start of range
- * @count: number of uids in range
- *
- * Returns true if @owner is authorized to use the range, false otherwise.
- */
 static bool have_range(struct commonio_db *db,
-		       const char *owner, unsigned long start, unsigned long count)
-{
-	const struct subordinate_range *range;
-	unsigned long end;
-
-	if (count == 0)
-		return false;
-
-	end = start + count - 1;
-	range = find_range (db, owner, start);
-	while (range) {
-		unsigned long last;
-
-		last = range->start + range->count - 1;
-		if (last >= (start + count - 1))
-			return true;
-
-		count = end - last;
-		start = last + 1;
-		range = find_range(db, owner, start);
-	}
-	return false;
-}
+		       const char *owner, unsigned long start, unsigned long count);
 
 static bool append_range(struct subid_range **ranges, const struct subordinate_range *new, int n)
 {
@@ -573,6 +543,64 @@ static struct commonio_db subordinate_uid_db = {
 	false,			/* readonly */
 	false			/* setname */
 };
+
+/*
+ * have_range: check whether @owner is authorized to use the range
+ *             (@start .. @start+@count-1).
+ * @db: database to check
+ * @owner: owning uid being queried
+ * @start: start of range
+ * @count: number of uids in range
+ *
+ * Returns true if @owner is authorized to use the range, false otherwise.
+ */
+static bool have_range(struct commonio_db *db,
+		       const char *owner, unsigned long start, unsigned long count)
+{
+	const struct subordinate_range *range;
+	unsigned long end;
+	bool doclose = false;
+	bool ret = false;
+	int rc;
+
+	if (count == 0)
+		return false;
+
+	if (!db->isopen) {
+		doclose = true;
+		if (db == &subordinate_uid_db)
+			rc = sub_uid_open(O_RDONLY);
+		else
+			rc = sub_gid_open(O_RDONLY);
+		if (rc < 0)
+			return false;
+	}
+
+	end = start + count - 1;
+	range = find_range (db, owner, start);
+	while (range) {
+		unsigned long last;
+
+		last = range->start + range->count - 1;
+		if (last >= (start + count - 1)) {
+			ret = true;
+			break;
+		}
+
+		count = end - last;
+		start = last + 1;
+		range = find_range(db, owner, start);
+	}
+
+	if (doclose) {
+		if (db == &subordinate_uid_db)
+			sub_uid_close();
+		else
+			sub_gid_close();
+	}
+
+	return ret;
+}
 
 int sub_uid_setdbname (const char *filename)
 {
@@ -903,9 +931,8 @@ static bool all_digits(const char *str)
 
 static int append_uids(uid_t **uids, const char *owner, int n)
 {
-	uid_t owner_uid;
-	uid_t *ret;
-	int i;
+	int    i;
+	uid_t  owner_uid;
 
 	if (all_digits(owner)) {
 		i = sscanf(owner, "%d", &owner_uid);
@@ -931,13 +958,11 @@ static int append_uids(uid_t **uids, const char *owner, int n)
 			return n;
 	}
 
-	ret = REALLOC(*uids, n + 1, uid_t);
-	if (!ret) {
-		free(*uids);
+	*uids = REALLOCF(*uids, n + 1, uid_t);
+	if (!*uids)
 		return -1;
-	}
-	ret[n] = owner_uid;
-	*uids = ret;
+
+	(*uids)[n] = owner_uid;
 	return n+1;
 }
 
@@ -1115,6 +1140,16 @@ bool release_subid_range(struct subordinate_range *range, enum subid_type id_typ
 	}
 
 	return ret;
+}
+
+void free_subid_pointer(void *ptr)
+{
+	struct subid_nss_ops *h = get_subid_nss_handle();
+	if (h) {
+		h->free(ptr);
+	} else {
+		free(ptr);
+	}
 }
 
 #else				/* !ENABLE_SUBIDS */

@@ -46,7 +46,7 @@
 #include <fcntl.h>
 #endif				/* !USE_PAM */
 
-#include "alloc.h"
+#include "alloc/x/xmalloc.h"
 #include "attr.h"
 #include "cast.h"
 #include "prototypes.h"
@@ -59,8 +59,10 @@
 /*@-exitarg@*/
 #include "exitcodes.h"
 #include "shadowlog.h"
-#include "string/sprintf.h"
-#include "string/strtcpy.h"
+#include "string/sprintf/snprintf.h"
+#include "string/sprintf/xasprintf.h"
+#include "string/strcpy/strtcpy.h"
+#include "string/strdup/xstrdup.h"
 
 
 /*
@@ -126,7 +128,7 @@ static void check_perms_pam (const struct passwd *pw);
 #else				/* !USE_PAM */
 static void check_perms_nopam (const struct passwd *pw);
 #endif				/* !USE_PAM */
-static void save_caller_context (char **argv);
+static void save_caller_context(void);
 static void process_flags (int argc, char **argv);
 static void set_environment (struct passwd *pw);
 
@@ -722,6 +724,7 @@ static /*@only@*/struct passwd * do_check_perms (void)
 	return pw;
 }
 
+
 /*
  * save_caller_context - save information from the call context
  *
@@ -730,7 +733,8 @@ static /*@only@*/struct passwd * do_check_perms (void)
  *	the TTY (ttyp), and whether su was called from a console
  *	(is_console) for further processing and before they might change.
  */
-static void save_caller_context (char **argv)
+static void
+save_caller_context(void)
 {
 	struct passwd *pw = NULL;
 #ifndef USE_PAM
@@ -800,6 +804,7 @@ static void save_caller_context (char **argv)
 #endif				/* !USE_PAM */
 	pw_free (pw);
 }
+
 
 /*
  * process_flags - Process the command line arguments
@@ -1013,7 +1018,7 @@ int main (int argc, char **argv)
 	(void) bindtextdomain (PACKAGE, LOCALEDIR);
 	(void) textdomain (PACKAGE);
 
-	save_caller_context (argv);
+	save_caller_context();
 
 	OPENLOG (Prog);
 
@@ -1198,17 +1203,14 @@ int main (int argc, char **argv)
 	 * case they will be provided to the new user's shell as arguments.
 	 */
 	if (fakelogin) {
-		char *arg0;
+		char  *arg0;
 
 		cp = getdef_str ("SU_NAME");
 		if (NULL == cp) {
 			cp = Basename (shellstr);
 		}
 
-		arg0 = XMALLOC(strlen(cp) + 2, char);
-		arg0[0] = '-';
-		strcpy (arg0 + 1, cp);
-		cp = arg0;
+		xasprintf(&arg0, "-%s", cp);
 	} else {
 		cp = Basename (shellstr);
 	}

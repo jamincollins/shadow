@@ -36,8 +36,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "alloc.h"
+#include "alloc/x/xmalloc.h"
 #include "atoi/str2i.h"
+#include "atoi/getnum.h"
 #include "chkname.h"
 #include "defines.h"
 #include "faillog.h"
@@ -64,7 +65,9 @@
 #include "tcbfuncs.h"
 #endif
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/snprintf.h"
+#include "string/sprintf/xasprintf.h"
+#include "string/strdup/xstrdup.h"
 
 
 #ifndef SKEL_DIR
@@ -238,6 +241,9 @@ static void create_home (void);
 static void create_mail (void);
 static void check_uid_range(int rflg, uid_t user_id);
 
+static FILE *fmkstemp(char *template);
+
+
 /*
  * fail_exit - undo as much as possible
  */
@@ -355,10 +361,7 @@ static void get_defaults (void)
 	 * values are used, everything else can be ignored.
 	 */
 	while (fgets (buf, sizeof buf, fp) == buf) {
-		cp = strrchr (buf, '\n');
-		if (NULL != cp) {
-			*cp = '\0';
-		}
+		*strchrnul(buf, '\n') = '\0';
 
 		cp = strchr (buf, '=');
 		if (NULL == cp) {
@@ -524,7 +527,6 @@ static void show_defaults (void)
  */
 static int set_defaults (void)
 {
-	int   ofd;
 	int   ret = -1;
 	bool  out_group = false;
 	bool  out_groups = false;
@@ -558,7 +560,7 @@ static int set_defaults (void)
 			fprintf(stderr,
 			        _("%s: cannot create new defaults file: %s\n"),
 			        Prog, strerror(errno));
-			goto setdef_err;
+			goto err_free_new;
 		}
 	}
 
@@ -567,36 +569,27 @@ static int set_defaults (void)
 		fprintf (stderr,
 			_("%s: cannot create directory for defaults file\n"),
 			Prog);
-		goto setdef_err;
+		goto err_free_def;
 	}
 
 	ret = mkdir(dirname(new_file_dup), 0755);
+	free(new_file_dup);
 	if (-1 == ret && EEXIST != errno) {
 		fprintf (stderr,
 			_("%s: cannot create directory for defaults file\n"),
 			Prog);
-		free(new_file_dup);
-		goto setdef_err;
+		goto err_free_def;
 	}
-	free(new_file_dup);
 
 	/*
 	 * Create a temporary file to copy the new output to.
 	 */
-	ofd = mkstemp (new_file);
-	if (-1 == ofd) {
-		fprintf (stderr,
-		         _("%s: cannot create new defaults file\n"),
-		         Prog);
-		goto setdef_err;
-	}
-
-	ofp = fdopen (ofd, "w");
+	ofp = fmkstemp(new_file);
 	if (NULL == ofp) {
 		fprintf (stderr,
 		         _("%s: cannot open new defaults file\n"),
 		         Prog);
-		goto setdef_err;
+		goto err_free_def;
 	}
 
 	/*
@@ -622,8 +615,9 @@ static int set_defaults (void)
 				fprintf (stderr,
 				         _("%s: line too long in %s: %s..."),
 				         Prog, default_file, buf);
-				(void) fclose (ifp);
-				goto setdef_err;
+				fclose(ifp);
+				fclose(ofp);
+				goto err_free_def;
 			}
 		}
 
@@ -702,9 +696,10 @@ static int set_defaults (void)
 	(void) fflush (ofp);
 	if (   (ferror (ofp) != 0)
 	    || (fsync (fileno (ofp)) != 0)
-	    || (fclose (ofp) != 0)) {
+	    || (fclose (ofp) != 0))
+	{
 		unlink (new_file);
-		goto setdef_err;
+		goto err_free_def;
 	}
 
 	/*
@@ -718,7 +713,7 @@ static int set_defaults (void)
 		         _("%s: Cannot create backup file (%s): %s\n"),
 		         Prog, buf, strerror (err));
 		unlink (new_file);
-		goto setdef_err;
+		goto err_free_def;
 	}
 
 	/*
@@ -729,7 +724,7 @@ static int set_defaults (void)
 		fprintf (stderr,
 		         _("%s: rename: %s: %s\n"),
 		         Prog, new_file, strerror (err));
-		goto setdef_err;
+		goto err_free_def;
 	}
 #ifdef WITH_AUDIT
 	audit_logger (AUDIT_USYS_CONFIG, Prog,
@@ -744,11 +739,12 @@ static int set_defaults (void)
 	         def_inactive, def_expire, def_template,
 	         def_create_mail_spool, def_log_init));
 	ret = 0;
-    setdef_err:
-	free(new_file);
-	if (prefix[0]) {
+
+err_free_def:
+	if (prefix[0])
 		free(default_file);
-	}
+err_free_new:
+	free(new_file);
 
 	return ret;
 }
@@ -762,7 +758,6 @@ static int set_defaults (void)
  */
 static int get_groups (char *list)
 {
-	char *cp;
 	struct group *grp;
 	int errors = 0;
 	int ngroups = 0;
@@ -782,19 +777,18 @@ static int get_groups (char *list)
 	 * values for group identifiers is permitted.
 	 */
 	do {
+		char  *g;
+
 		/*
 		 * Strip off a single name from the list
 		 */
-		cp = strchr (list, ',');
-		if (NULL != cp) {
-			*cp++ = '\0';
-		}
+		g = strsep(&list, ",");
 
 		/*
 		 * Names starting with digits are treated as numerical
 		 * GID values, otherwise the string is looked up as is.
 		 */
-		grp = get_local_group (list);
+		grp = get_local_group(g);
 
 		/*
 		 * There must be a match, either by GID value or by
@@ -805,10 +799,9 @@ static int get_groups (char *list)
 		if (NULL == grp) {
 			fprintf (stderr,
 			         _("%s: group '%s' does not exist\n"),
-			         Prog, list);
+			         Prog, g);
 			errors++;
 		}
-		list = cp;
 
 		/*
 		 * If the group doesn't exist, don't dump core...
@@ -857,21 +850,14 @@ static int get_groups (char *list)
  */
 static struct group * get_local_group(char * grp_name)
 {
-	char  *end;
-	const struct group *grp;
-	struct group *result_grp = NULL;
-	long long  gid;
+	gid_t               gid;
+	struct group        *result_grp = NULL;
+	const struct group  *grp;
 
-	gid = strtoll(grp_name, &end, 10);
-	if (   ('\0' != *grp_name)
-		&& ('\0' == *end)
-		&& (ERANGE != errno)
-		&& (gid == (gid_t)gid)) {
-		grp = gr_locate_gid (gid);
-	}
-	else {
+	if (get_gid(grp_name, &gid) == 0)
+		grp = gr_locate_gid(gid);
+	else
 		grp = gr_locate(grp_name);
-	}
 
 	if (grp != NULL) {
 		result_grp = __gr_dup (grp);
@@ -2093,11 +2079,7 @@ static void tallylog_reset (const char *user_name)
 		failed = 1;
 		break;
 	case 0: /* child */
-		pname = strrchr(pam_tally2, '/');
-		if (pname == NULL)
-			pname = pam_tally2;
-		else
-			pname++;        /* Skip the '/' */
+		pname = Basename(pam_tally2);
 		execl(pam_tally2, pname, "--user", user_name, "--reset", "--quiet", NULL);
 		/* If we come here, something has gone terribly wrong */
 		perror(pam_tally2);
@@ -2751,3 +2733,23 @@ int main (int argc, char **argv)
 	return E_SUCCESS;
 }
 
+
+static FILE *
+fmkstemp(char *template)
+{
+	int   fd;
+	FILE  *fp;
+
+	fd = mkstemp(template);
+	if (fd == -1)
+		return NULL;
+
+	fp = fdopen(fd, "w");
+	if (fp == NULL) {
+		close(fd);
+		unlink(template);
+		return NULL;
+	}
+
+	return fp;
+}

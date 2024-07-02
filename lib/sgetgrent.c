@@ -16,9 +16,12 @@
 #include <grp.h>
 #include <string.h>
 
-#include "alloc.h"
+#include "alloc/malloc.h"
+#include "alloc/reallocf.h"
+#include "atoi/getnum.h"
 #include "defines.h"
 #include "prototypes.h"
+
 
 #define	NFIELDS	4
 
@@ -80,11 +83,7 @@ struct group *sgetgrent (const char *buf)
 		}
 	}
 	strcpy (grpbuf, buf);
-
-	cp = strrchr (grpbuf, '\n');
-	if (NULL != cp) {
-		*cp = '\0';
-	}
+	*strchrnul(grpbuf, '\n') = '\0';
 
 	for (cp = grpbuf, i = 0; (i < NFIELDS) && (NULL != cp); i++)
 		grpfields[i] = strsep(&cp, ":");

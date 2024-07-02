@@ -14,12 +14,13 @@
 
 #ident "$Id$"
 
-#include <sys/types.h>
-#include "prototypes.h"
-#include "defines.h"
 #include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
 
 #include "atoi/str2i.h"
+#include "defines.h"
+#include "prototypes.h"
 
 
 static FILE *shadow;
@@ -60,11 +61,12 @@ void endspent (void)
 
 static struct spwd *my_sgetspent (const char *string)
 {
-	static char spwbuf[BUFSIZ];
-	static struct spwd spwd;
-	char *fields[FIELDS];
-	char *cp;
-	int i;
+	int                 i;
+	char                *fields[FIELDS];
+	char                *cp;
+	static char         spwbuf[BUFSIZ];
+	static char         empty[] = "";
+	static struct spwd  spwd;
 
 	/*
 	 * Copy string to local buffer.  It has to be tokenized and we
@@ -74,29 +76,20 @@ static struct spwd *my_sgetspent (const char *string)
 	if (strlen (string) >= sizeof spwbuf)
 		return 0;
 	strcpy (spwbuf, string);
-
-	cp = strrchr (spwbuf, '\n');
-	if (NULL != cp)
-		*cp = '\0';
+	*strchrnul(spwbuf, '\n') = '\0';
 
 	/*
 	 * Tokenize the string into colon separated fields.  Allow up to
 	 * FIELDS different fields.
 	 */
 
-	for (cp = spwbuf, i = 0; *cp && i < FIELDS; i++) {
-		fields[i] = cp;
-		while (*cp && *cp != ':')
-			cp++;
-
-		if (*cp)
-			*cp++ = '\0';
-	}
+	for (cp = spwbuf, i = 0; cp != NULL && i < FIELDS; i++)
+		fields[i] = strsep(&cp, ":");
 
 	if (i == (FIELDS - 1))
-		fields[i++] = cp;
+		fields[i++] = empty;
 
-	if ((cp && *cp) || (i != FIELDS && i != OFIELDS))
+	if (cp != NULL || (i != FIELDS && i != OFIELDS))
 		return 0;
 
 	/*
@@ -228,8 +221,7 @@ static struct spwd *my_sgetspent (const char *string)
 
 struct spwd *fgetspent (FILE * fp)
 {
-	char buf[BUFSIZ];
-	char *cp;
+	char  buf[BUFSIZ];
 
 	if (NULL == fp) {
 		return (0);
@@ -237,10 +229,7 @@ struct spwd *fgetspent (FILE * fp)
 
 	if (fgets (buf, sizeof buf, fp) != NULL)
 	{
-		cp = strchr (buf, '\n');
-		if (NULL != cp) {
-			*cp = '\0';
-		}
+		*strchrnul(buf, '\n') = '\0';
 		return my_sgetspent (buf);
 	}
 	return 0;

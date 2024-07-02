@@ -11,22 +11,23 @@
 
 #ident "$Id$"
 
-#include "prototypes.h"
-#include "defines.h"
+#include <ctype.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <errno.h>
+#include <string.h>
+
 #ifdef USE_ECONF
 #include <libeconf.h>
 #endif
 
-#include "alloc.h"
 #include "atoi/str2i.h"
+#include "defines.h"
 #include "getdef.h"
+#include "prototypes.h"
 #include "shadowlog_internal.h"
-#include "string/sprintf.h"
+#include "string/sprintf/xasprintf.h"
 
 
 /*
@@ -579,7 +580,7 @@ static void def_load (void)
 
 		*s++ = '\0';
 		value = s + strspn (s, " \"\t");	/* next nonwhite */
-		*(value + strcspn (value, "\"")) = '\0';
+		*strchrnul(value, '"') = '\0';
 
 		/*
 		 * Store the value in def_table.

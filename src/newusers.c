@@ -30,7 +30,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include "alloc.h"
+#include "alloc/reallocf.h"
+#include "atoi/getnum.h"
 #include "atoi/str2i.h"
 #ifdef ACCT_TOOLS_SETUID
 #ifdef USE_PAM
@@ -51,7 +52,8 @@
 #endif				/* ENABLE_SUBIDS */
 #include "chkname.h"
 #include "shadowlog.h"
-#include "string/sprintf.h"
+#include "string/sprintf/snprintf.h"
+#include "string/strdup/xstrdup.h"
 
 
 /*
@@ -1115,13 +1117,9 @@ int main (int argc, char **argv)
 		 * values aren't that particular.
 		 */
 		for (cp = buf, nfields = 0; nfields < 7; nfields++) {
-			fields[nfields] = cp;
-			cp = strchr (cp, ':');
+			fields[nfields] = strsep(&cp, ":");
 			if (cp == NULL)
 				break;
-
-			*cp = '\0';
-			cp++;
 		}
 		if (nfields != 6) {
 			fprintf (stderr, _("%s: line %d: invalid line\n"),
@@ -1209,8 +1207,8 @@ int main (int argc, char **argv)
 			fail_exit (EXIT_FAILURE);
 		}
 		lines[nusers-1]     = line;
-		usernames[nusers-1] = strdup (fields[0]);
-		passwords[nusers-1] = strdup (fields[1]);
+		usernames[nusers-1] = xstrdup(fields[0]);
+		passwords[nusers-1] = xstrdup(fields[1]);
 #endif				/* USE_PAM */
 		if (add_passwd (&newpw, fields[1]) != 0) {
 			fprintf (stderr,

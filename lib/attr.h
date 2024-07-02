@@ -6,15 +6,17 @@
 
 
 #if defined(__GNUC__)
-# define MAYBE_UNUSED                __attribute__((unused))
-# define NORETURN                    __attribute__((__noreturn__))
-# define format_attr(type, fmt, va)  __attribute__((format(type, fmt, va)))
-# define ATTR_ACCESS(...)            __attribute__((access(__VA_ARGS__)))
+# define MAYBE_UNUSED                [[gnu::unused]]
+# define NORETURN                    [[gnu::__noreturn__]]
+# define format_attr(type, fmt, va)  [[gnu::format(type, fmt, va)]]
+# define ATTR_ACCESS(...)            [[gnu::access(__VA_ARGS__)]]
+# define ATTR_ALLOC_SIZE(...)        [[gnu::alloc_size(__VA_ARGS__)]]
 #else
 # define MAYBE_UNUSED
 # define NORETURN
 # define format_attr(type, fmt, va)
 # define ATTR_ACCESS(...)
+# define ATTR_ALLOC_SIZE(...)
 #endif
 
 #if (__GNUC__ >= 11) && !defined(__clang__)

@@ -17,7 +17,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "alloc.h"
+#include "alloc/malloc.h"
+#include "alloc/realloc.h"
+#include "alloc/x/xrealloc.h"
 #include "prototypes.h"
 #include "defines.h"
 
@@ -37,21 +39,17 @@ static /*@null@*/char **build_list (char *s, char **list[], size_t * nlist)
 	size_t nelem = *nlist, size;
 
 	while (s != NULL && *s != '\0') {
-		size = (nelem + 1) * sizeof (ptr);
-		ptr = REALLOC(*list, size, char *);
-		if (NULL != ptr) {
-			ptr[nelem] = strsep(&s, ",");
-			nelem++;
-			*list = ptr;
-			*nlist = nelem;
-		}
-	}
-	size = (nelem + 1) * sizeof (ptr);
-	ptr = REALLOC(*list, size, char *);
-	if (NULL != ptr) {
-		ptr[nelem] = NULL;
+		ptr = XREALLOC(*list, nelem + 1, char *);
+		ptr[nelem] = strsep(&s, ",");
+		nelem++;
 		*list = ptr;
+		*nlist = nelem;
 	}
+
+	ptr = XREALLOC(*list, nelem + 1, char *);
+	ptr[nelem] = NULL;
+	*list = ptr;
+
 	return ptr;
 }
 
@@ -93,11 +91,7 @@ void endsgent (void)
 	}
 
 	strcpy (sgrbuf, string);
-
-	cp = strrchr (sgrbuf, '\n');
-	if (NULL != cp) {
-		*cp = '\0';
-	}
+	*strchrnul(sgrbuf, '\n') = '\0';
 
 	/*
 	 * There should be exactly 4 colon separated fields.  Find
@@ -178,10 +172,7 @@ void endsgent (void)
 				return NULL;
 			}
 		}
-		cp = strrchr (buf, '\n');
-		if (NULL != cp) {
-			*cp = '\0';
-		}
+		*strchrnul(buf, '\n') = '\0';
 		return (sgetsgent (buf));
 	}
 	return NULL;
